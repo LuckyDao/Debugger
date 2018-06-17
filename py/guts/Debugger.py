@@ -1,11 +1,3 @@
-#TODOCOMPLETE:  18061601 Goal is to take learnings from first tutorial and read in something, print to console
-#TODOCOMPLETE:  18061602 "TypeError: must be str, not NoneType", occurs when several vars are pulled
-    #https://stackoverflow.com/questions/43566543/typeerror-must-be-str-not-nonetype
-    #TypeError: must be str, not NoneType
-    #solved with def CheckforNone
-#TODOCOMPLETE:  18061705 what is browser.get, browser.execute_script? - THESE RUN FROM THE GECKODRIVERS
-#TODOCOMPLETE:  18061708 Dynamically populate vars and props
-
 #TODO:  18061703 evar9 returns as none on HP why?  it should be "homepage" - this is prev.page, so browser doesn't take into account the s.do functions
 #TODO:  18061704 pull all evars and see what returns, set function to loop through this part
 #TODO:  18061706 should use some error handling for lack of internet connection, should test connectivity, etc.
@@ -52,20 +44,9 @@ def pagehits(url):
 
     try:
         print("ScriptExecution in pagehits Fx...")
-
-        ##Current Edits
-        #begin loop
         for i in range(0, 256, 1):
             ScriptExecution("prop"+str(i))
             continue
-
-        ##End of Edits
-        # ScriptExecution("prop1")
-        # ScriptExecution("prop3")
-        # ScriptExecution("prop5")
-        # ScriptExecution("prop9")
-        # ScriptExecution("prop15")
-        # ScriptExecution("prop17")
     except WebDriverException:
         print("Exception on {}".format(url))
     browser.quit()
