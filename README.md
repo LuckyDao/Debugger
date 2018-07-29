@@ -2,7 +2,7 @@
 
 Will be used to read Analytics js tags on page.
 
-Simple, straightforward > Stability on all platforms > Look and Feel
+<h3>Simple, straightforward > Stability on all platforms > Look and Feel</h3>
 
 Requires:
 
