@@ -1,10 +1,6 @@
 
-#TODO:  180617_10 make browser dynamic
-#TODO:  180617_11 in pagehits Fx, should do a on DOM COMPLETE check before running other functions
-#TODO:  180617_13 In for loop under pagehits, should have a mechanism to check if the prop exists.  i.e. there's no prop0, but it returns blank... differentiate from NOT PRESENT and ACTUAL BLANK
-    #might be able to do this using the Omniture API (what vars do you actually have active... etc.
+#TODO:  180617_10 make browser options choosable
 #TODO:  180618_15 figure out how to set headless for Chrome
-#TODO:  180617_14 POST requests time out - is this due to query string?  not reproducing thus far:  6/18/18
 #TODO:  180618_17 Should handle SSL certificates gracefully at some point - will need to find my certificates on the computer - requests package looks like it can handle this well
     #https://stackoverflow.com/questions/18061640/ignore-certificate-validation-with-urllib3  Could switch between HTTPSConnectionPool and PoolManager
     #HACK:  https://stackoverflow.com/questions/27981545/suppress-insecurerequestwarning-unverified-https-request-is-being-made-in-pytho
@@ -14,99 +10,139 @@
 #TODO:  180624_23 add a way to check values through a data layer (like tealium on Belk)
     #updating s_code check - if it finds utag.js, have to go into the utag code itself?  Not sure
 #TODO:  180624_24 Should I use the htmlUnit driver rather than FF or Chrome default? https://www.seleniumhq.org/docs/03_webdriver.jsp#selenium-webdriver-s-
-#TODO:  180624_25 SCODE check fails, src is changing from page to page.
-#TODO:  180624_26 This page takes FOREVER to load https://www.kohls.com/catalog.jsp?CN=Promotions:Sale&BL=y&icid=hpmf-sale
-    #Timeouts might work, but sometimes the page never finishes loading because of Ajax?
-    #work on 26:  can't get dirver capabilities to work - might be syntax
+#TODO:  180630_28 Sometimes I receive a 504 or 304 error, and my URL if returns a "STATUS OK"  this is incorrect
+#TODO:  180630_29 print my evars/props, but also pass them into arrays
+#TODO:  180630_30 Randomize the sleep amount, but use implicit wait (todo 21)
+
+#TODO: 180705_32 check if an instance of the browser is already open, if so, don't open a new one
+#TODO:  180705_33 LANDSEND DOESN"T WORK - it has a popup modal - must kill the popup modal
+#TODO:  180705_34 LANDSEND USES DTM - must figure out how to defeat it -- put in a check for _satelite
+#TODO:  180705_35 OLD NAVY:  https://oldnavy.gap.com will this work?
+
+#TODO:  180713_36:  I need to learn more about the geckodriver and how selenium/webdriver talks to it - what is doing the translation of "general.useragent.override"
 
 
-print("**ACTUAL CODE...Last Commit:  6/17/2018 12:40PM")
+print("**ACTUAL CODE...Last Commit:  7/29/2018 14:12PM")
 
 from selenium import webdriver
 from selenium.common.exceptions import WebDriverException
-from selenium.webdriver.firefox.options import Options #used for ff... not sure if needed?
+from selenium.webdriver.firefox.options import Options as Options #allows for some browser options
+from selenium.webdriver.common.desired_capabilities import DesiredCapabilities #allows for some browser options
 from time import sleep #allows for waiting w/ promise
 import requests #used for URL functions and validity
 import urllib3 #used to kill Insecure https request warnings- should solve properly for this
 
 print("...Import complete...")
 
+#CREATE OPTIONS AND CAPABILITIES OBJECTS
+ops = Options()
+caps = DesiredCapabilities.FIREFOX.copy()
+profile = webdriver.FirefoxProfile()
+prof = webdriver.FirefoxProfile()
 
-#SET GLOBALS
-
-TargetURL = ""
-#webdriver.DesiredCapabilities(pageLoadStrategy="eager")
-
-browser = webdriver.Firefox(executable_path="C:\\Python36\\Env\\PacketSniffer\\geckodriver.exe")
-browser.get(TargetURL)
+#MODIFY OPTIONS AND CAPABILITIES TO BE HEADLESS AND EAGER LOAD STRATEGY, ATTEMPTING TO ADD IN UA
+caps.update({'pageLoadStrategy':'eager'})
+ops.headless=True
+prof.set_preference("general.useragent.override", "Android 4.4; Mobile;")
 
 
+#SET TARGET URLs AND BROWSER
+URLArray = [""]
+URLCount = 0
+TargetURL = URLArray[URLCount]
+####
+
+browser = webdriver.Firefox(executable_path="C:\\Python36\\Env\\PacketSniffer\\geckodriver.exe",options=ops, capabilities=caps)
 print("...Globals are set...")
 
-####URL Testing for Errors###
-def URLTest(TargetURL):
+
+
+
+def URLTest():
+    # TEST URL FOR ERRORS
     try:
         #hard disable SSL warning
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
         r = requests.head(TargetURL, verify=False)
         #URL Status ok?
-        if r.status_code ==200 or 301 or 302:
-            print("STATUS OK:  "+str(r.status_code))
+        if r.status_code == 200 or 301 or 302:
+            print("\nURL STATUS OK:  "+str(r.status_code))
         else:
-            print("STATUS NOT 200:  " + str(r.status_code))
+            print("URL STATUS NOT 200:  " + str(r.status_code))
             return quit()
     except requests.exceptions.RequestException as e:
-        print("GET ENCOUNTERED A FAILURE\n"+str(e)), quit()
+        print("GET ENCOUNTERED A FAILURE"+str(e)), quit()
 
 
 def StandardCodeChecks():
-    #check for cookie, if not, quit.  Should build if cookie changes as well
-        #maybe do this dynamically so cookie name doesn't have to be manually set?
-    if browser.get_cookie("") !=None:
-        VisitorCookie =browser.get_cookie("")
+    # TEST FOR ADOBE COOKIE AND S_CODE
+    #check for cookie, if not, quit.  Should build if cookie changes page to page as well
+    if browser.get_cookie("") is not None:
+        InitialVisitorCookie = browser.get_cookie("")
+        #FUTURE STATE:  if CurrentCookie == NULL Then Continue else if Initial Visitor Cookie != CurrentCookie throw error
         print("...Cookie Was Found...")
+        sleep(2)
+        if ScriptExecution("marketingCloudVisitorID",False) is None or ScriptExecution("marketingCloudVisitorID",False)=="":
+            print("MCID NOT SET!")
+            quit()
+        else:
+            print("...MCID Was Set...")
     else:
-        print("COOKIE NOT FOUND!\n")
-        #quit()
-    #check for presence of s_code.js, (this only works without data layer or DTM update later)
-    #doesn't work on pages other than HP
-    # if len(browser.find_elements_by_xpath("//script[@type='text/javascript' and @src='/snb/media/omniture/s_code.js']"))>0:
-    #     print("ElementExists")
-    # else:
-    #     print("ElementDoesntExist")
-    #     return
-def ScriptExecution(SVarStr):
+        print("COOKIE OR ORG ID NOT FOUND!")
+        quit()
+
+
+    # check for presence of s_code.js, (this only works without data layer or DTM update later)
+    if len(browser.find_elements_by_xpath("//script[contains(@src, 's_code.js')]"))>0:
+        print("...s_code exists...")
+    else:
+        print("s_code does not exist!...")
+        return quit()
+
+#put in a printit argument to print results or not
+def ScriptExecution(SVarStr,PrintMe=True):
+    #put a check for _sattelite
     SVarVal = browser.execute_script("return ("+"s."+SVarStr+");")
-    if SVarVal == None:
+    if SVarVal is None:
         nothing=0
-    elif SVarVal =="":
-        print(SVarStr+":"+"    NotSetYet")
-    else:
-        print(SVarStr+":"+"  "+SVarVal)
+    elif SVarVal == "" and PrintMe==True:
+        print(str(SVarStr)+":"+"  ---")
+    elif PrintMe==True:
+        print(str(SVarStr)+":"+"  "+str(SVarVal))
     return SVarVal
 
-def PullData(url):
-    browser.get(url)
+def PullData():
+    browser.get(TargetURL)
+    print("...Getting URL...")
     sleep(1)
-    print("...Site is loading... ")
 
     #RUN STANDARD CHECKS FOR ADOBE CODE
     StandardCodeChecks()
 
     try:
-        print("********ScriptExecution*******")
+        #print("********ScriptExecution*******")
+        print("**************")
         ScriptExecution("pageName")
+        print("**************")
+        ScriptExecution("marketingCloudVisitorID")
         ScriptExecution("products")
-        for i in range(0, 15, 1):
+        for i in range(0, 25, 1):
             ScriptExecution("prop"+str(i))
             ScriptExecution("eVar" + str(i))
 
-    except WebDriverException:
-        print("WebDriver Exception on {}".format(url))
-    #browser.quit()
+    except WebDriverException as e:
+        print("WebDriver Exception on {}".format(TargetURL))
+        print("\n"+str(e))
 
 
-URLTest(TargetURL)
-PullData(TargetURL)
+
+for m in range(0, len(URLArray)):
+    TargetURL = URLArray[URLCount]
+    URLTest()
+    PullData()
+    m += 1
+    URLCount = URLCount + 1
+else:
+    browser.quit()
 
 print("\nEND OF CODE")
