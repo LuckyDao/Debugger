@@ -1,15 +1,17 @@
 # Debugger
 
-Will be used to read js tags on page.
+Will be used to read Analytics js tags on page.
+
+Simple, straightforward > Stability on all platforms > Look and Feel
 
 Requires:
 
-1 Back end functions to read tags and perform site checks
+1 "Back end" functions to read tags and perform standard site checks
 
-2 Interface to accept user input for scanning
+2 Interface to accept user input
 
-3 Output to record tags and mark errors
+3 Output to record tags and eventually mark errors
 
 4 Integration with existing analytics tool
 
-2nd layer interface and back end to accept how a tag should fire on page
+5 2nd set of options to be able to set how a tag should fire on page
