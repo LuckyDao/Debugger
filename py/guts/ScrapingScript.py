@@ -1,6 +1,6 @@
 
 #TODO:  180617_10 LG make browser options choosable incl chrome ff and ie
-#TODO:  180618_17 LG Should handle SSL certificates gracefully at some point - will need to find my certificates on the computer - requests package looks like it can handle this well
+#TODO:  180618_17 LG Should handle SSL certificates properly at some point - will need to find my certificates on the computer - requests package looks like it can handle this well
     #https://stackoverflow.com/questions/18061640/ignore-certificate-validation-with-urllib3  Could switch between HTTPSConnectionPool and PoolManager
     #HACK:  https://stackoverflow.com/questions/27981545/suppress-insecurerequestwarning-unverified-https-request-is-being-made-in-pytho
 #TODO:  180623_20 MD Rather than try except, for non critical errors, I could log them
@@ -20,6 +20,16 @@
 
 print("**ACTUAL CODE...Last Commit:  8/4/18 1:18PM")
 
+#TODO:  180808_40 Create and connect mechanism to output to Excel:
+    # Create an excel spreadsheet
+    #write page 1 to a sheet, write page 2 to a sheet, etc.
+    #toggle for output to one sheet or output to many sheets?
+    # Show Output Path and file name in an entry box
+    # how to work with excel https://www.datacamp.com/community/tutorials/python-excel-tutorial
+    #openpyexcel https://openpyxl.readthedocs.io/en/stable/tutorial.html
+    #TODO -- I left off connecting pulldata scriptexecution and kesselrun functions - currently checking with print functions
+
+
 from selenium import webdriver
 from selenium.common.exceptions import WebDriverException
 from selenium.webdriver.firefox.options import Options as Options #allows for some browser options
@@ -28,7 +38,7 @@ from time import sleep #allows for waiting w/ promise
 import requests #used for URL functions and validity
 import urllib3 #used to kill Insecure https request warnings- should solve properly for this
 import globals
-
+import openpyxl #https://openpyxl.readthedocs.io/en/stable/tutorial.html
 
 
 print("...Import complete...")
@@ -48,11 +58,33 @@ prof.set_preference("general.useragent.override", "Android 4.4; Mobile;")
 browser = webdriver.Firefox(executable_path="C:\\Python36\\Env\\PacketSniffer\\Drivers for Selenium Library\\geckodriver20.exe",options=ops, capabilities=caps, timeout=60)
 print("...Globals are set...")
 
+# create an array of the vars and props for export to excel
+#will need to take each page and put it on a separate excel sheet
+MagicArray = []
 
+#Sets up the workbook for output
+Wb = openpyxl.Workbook()
+
+
+def WritePageCode():
+
+    if globals.OutputPath == "":
+        print("Output Path not set!!!!")
+    else:
+        #Wb.save(str(globals.OutputPath) + "\Testfile.xlsx") ##Can put this at the end of the Fx
+        sheetcount =0
+        Wb.create_sheet()
+        Wb.remove_sheet("Sheet1")
+
+    #THESE WILL BE CALLED BY KESSELRUN
+
+        Ws = Wb.create_sheet("homepage")
+        cellrange = Ws["A1"]
+        cellrange.value = "Hello World"
 
 
 def URLTest():
-    # TEST URL FOR ERRORS
+    '''TESTS THE URL FOR STANDARD HTTP ERRORS, DISABLES SSL CHECKS'''
     try:
         #hard disable SSL warning
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -66,12 +98,11 @@ def URLTest():
     except requests.exceptions.RequestException as e:
         print("GET ENCOUNTERED A FAILURE"+str(e)), quit()
 
-
 def StandardCodeChecks():
-    # TEST FOR ADOBE COOKIE AND S_CODE
+    '''TESTS FOR EXISTENCE OF ADOBE COOKIE AND S_CODE, ELSE QUITS'''
     #check for cookie, if not, quit.  Should build if cookie changes page to page as well
-    if browser.get_cookie("AMCV_F0EF5E09512D2CD20A490D4D%40AdobeOrg") is not None:
-        InitialVisitorCookie = browser.get_cookie("AMCV_F0EF5E09512D2CD20A490D4D%40AdobeOrg")
+    if browser.get_cookie(globals.OrgID) is not None:
+        InitialVisitorCookie = browser.get_cookie(globals.OrgID)
         #FUTURE STATE:  if CurrentCookie == NULL Then Continue else if Initial Visitor Cookie != CurrentCookie throw error
         print("...Cookie Was Found...")
         sleep(2)
@@ -85,32 +116,37 @@ def StandardCodeChecks():
         quit()
 
 
-    # check for presence of s_code.js, (this only works without data layer or DTM update later)
+    # check for presence of s_code.js, (this only works without data layer or DTM... update IT later)
     if len(browser.find_elements_by_xpath("//script[contains(@src, 's_code.js')]"))>0:
         print("...s_code exists...")
     else:
         print("s_code does not exist!...")
         return quit()
 
-
 def ScriptExecution(SVarStr,PrintMe=True):
-    SVarVal = browser.execute_script("return ("+"s."+SVarStr+");")
+    '''GRABS THE TAG VALUES, APPENDS THEM TO AN ARRAY.  INTENDED TO OPERATE ON EACH TAG.  TAKES TAG NAME AS PARAM 1 (pageName) for example'''
+    #TODO:  IF PRINTME IS TRUE, PRINT TO CONSOLE AS WELL AS ARRAY
+    SVarVal = browser.execute_script("return ("+globals.AdobeNamespace+SVarStr+");")
     if SVarVal is None:
-        nothing=0
+        x=0
     elif SVarVal == "" and PrintMe==True:
-        print(str(SVarStr)+":"+"  ---")
-    elif PrintMe==True:
-        print(str(SVarStr)+":"+"  "+str(SVarVal))
-    return SVarVal
+        MagicArray.append(str(SVarStr)+":"+"  ---")
+        #print(str(SVarStr)+":"+"  ---")
 
-def PullData():
+    elif PrintMe==True:
+        MagicArray.append(str(SVarStr)+":"+"  "+str(SVarVal))
+        #print(str(SVarStr)+":"+"  "+str(SVarVal))
+
+def PullPage():
+    '''GRABS THE PAGE, RUNS SCRIPTEXECUTION FUNCTION ON EACH SET OF TAGS, CHECKS EACH PAGE FOR STANDARD CODE ELEMENTS'''
     browser.get(globals.TargetURL)
     print("...Getting URL...")
     sleep(1)
 
     #RUN STANDARD CHECKS FOR ADOBE CODE
-    #StandardCodeChecks()
+    StandardCodeChecks()
 
+#DO NOT DELETE - THIS CODE WORKS
     try:
         print("**************")
         ScriptExecution("pageName")
@@ -126,20 +162,19 @@ def PullData():
         print("WebDriver Exception on {}".format(globals.TargetURL))
         print("\n"+str(e))
 
-
 def KesselRun():
-    print("\nsrc Array:  " + str(globals.URLArray))
-    print("src Targ:  "+str(globals.TargetURL))
-    print("src Cnt:  " + str(globals.URLCount))
+    '''LOOPS THROUGH THE URLARRAY, EXECUTES URLTEST, PULLDATA (w/ Script Execution) and then WritePageCode IN SEQUENCE, KNOWS WHEN THE URL CHANGES'''
     for m in range(0, len(globals.URLArray)):
         globals.TargetURL = globals.URLArray[m]
         URLTest()
-        PullData()
+        PullPage()
+        #WritePageCode()
+
         m=m + 1
     else:
         globals.URLArray = [""]
-        globals.URLCount = 0
+        globals.OrgID=""
         print("\n12 Parsecs!")
 
-#KesselRun(URLArray, URLCount, TargetURL)
+
 print("End of ScrapeScript")

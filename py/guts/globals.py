@@ -1,4 +1,7 @@
 
 URLArray=[""]
-URLCount=0
-TargetURL=URLArray[URLCount]
+TargetURL=URLArray[0]
+OrgID= ""
+AdobeNamespace= ""
+OutputPath = ""
+DriverPath = ""
