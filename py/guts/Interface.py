@@ -1,15 +1,28 @@
 
+#Note:  GLOBAL means "global to the file" not the package
 
 #TODO:  180729_8 VLG right frame should contain output of current execution or some sort of indicator
 #TODO:  180729_9 LG in the Adobe org ID, check if it is URL encoded or not and adjust  (script prefers URL encoded)
 #TODO:  180729_8 SM sort all widget grid and creation top to bottom, left to right
 #TODO:  180729_10 MD no need to disable widgets while running, should give user feedback that it is not just hung
-#TODO:  180729_11 SM attach namespace entry box
 #TODO:  180729_14 SM outpath should be toggled as 1:  file output or 2:  driver location  (yup w/ lambda)
 #TODO:  180730_17 MD put in Entry boxes that display default selections (driver and output path should have default values)
 #TODO:  180730_18 SM from todo17 in scraping script:  put path selection for SSL certificate location
-#TODO:  180730_19 SM attach Adobe Org ID
-#TODO:  180730_20 OP since I'm importing Scrape into Interface, I could make a "browser" class with methods and such
+#TODO:  180808_19 Need to set up the output pane -
+    #Pane for output
+    #connect log and print statements to output pane
+    #pass errors to output pane
+    #Create "loading" animation with a for loop
+
+
+#TODO:  180808_21 add helpful hints
+
+#TODOCOMPLETE:  180808_21 remove url count, is not used
+#TODOCOMPLETE:  180730_19 SM attach Adobe Org ID
+#TODOCOMPLETE:  180730_20 OP since I'm importing Scrape into Interface, I could make a "browser" class with methods and such --NOT NEEDED
+#TODOCOMPLETE:  180808_22 Add a check for any empty boxes
+#TODOCOMPLETE:  180729_11 SM attach namespace entry box
+#TODOCOMPLETE:  180808_20 add a check for the Adobe ID before it loads pages
 
     #Colors:
         # #224587 Bright Blu
@@ -17,6 +30,7 @@
         # #565857 Dark Grey
         # #8a8d91 Med Grey
         # #5e77a7 Light Blue
+
 
 print("ACTUAL CODE:  Last upload 8/4/18 1:15PM")
 
@@ -27,8 +41,6 @@ from tkinter import filedialog
 import re
 import globals
 import ScrapingScript as SS
-import os
-
 
 print ("***import complete***")
 
@@ -39,22 +51,27 @@ def DeleteEntry(event):
     else:
         x=0
 
-#test variations of this - cannot change global vars in separate file and access them here
-#GLOBAL means "global to the file" not the package
-def GetInputBox():
+def GetInputBoxes():
+    #get and format the input box
     patterns = [" ", "\n", "\t"]
     BoxData = InputBox.get("1.0",END)
     for i in range(len(patterns)):
         BoxData = re.sub(patterns[i],"",BoxData)
+
     BoxData = re.split(",",BoxData)
     globals.URLArray = BoxData
-    globals.TargetURL= globals.URLArray[globals.URLCount]
-    print("\nint BOX:  "+str(BoxData))
-    print("int Array:  "+str(globals.URLArray))
-    print("int Targ:  "+str(globals.TargetURL))
-    print("int Cnt:  "+str(globals.URLCount))
-    SS.KesselRun()
-    #BoxData = ""
+    globals.TargetURL= globals.URLArray[0]
+
+    #get the org ID
+    globals.OrgID = OrgIDEnt.get()
+
+    #get the Namespace
+    globals.AdobeNamespace = NamespaceEnt.get()
+
+    if globals.AdobeNamespace=="" or globals.OrgID =="" or globals.URLArray==[""]:
+        print("Namespace, OrgID or Array not set!!")
+    else:
+        SS.KesselRun()
 
 def QuitIt():
     SS.browser.stop_client()
@@ -63,10 +80,14 @@ def QuitIt():
 
 def SetOutputPath(param):
     if param is "output":
-        #OutputPath = filedialog.askdirectory()
-        print("output")
+        globals.OutputPath = filedialog.askdirectory()
+        print("output:  "+str(globals.OutputPath))
     else:
-        print("driver")
+        globals.DriverPath = filedialog.askdirectory()
+        print("driver:  "+str(globals.DriverPath))
+
+
+
 
 
 #SET ROOT WINDOW AND CONFIGURE
@@ -75,7 +96,6 @@ root = Tk()
 root.configure(bg="#565857")
 root.geometry("1250x765")
 root.resizable(width=False, height=False)
-
 
 #CREATE 1ST LEVEL WIDGETS (FRAMES)
 TopFrame=Frame(root)
@@ -91,7 +111,7 @@ RightFrame.grid(row=1, column=1, padx=5, pady=5, sticky = "NE")
 
 #CREATE 2ND LEVEL WIDGETS (BUTTONS AND INPUT FIELDS)
 InputBox = scrolledtext.ScrolledText(LeftFrame, wrap = WORD)
-RunButton = Button(BottomFrame, text="Run Script", width=12, command = GetInputBox, bg="#5e77a7")
+RunButton = Button(BottomFrame, text="Run Script", width=12, command = GetInputBoxes, bg="#5e77a7")
 QuitButton = Button(BottomFrame, text ="Quit", width =12, command = QuitIt)
 OutputButton = Button(BottomFrame, text = "Save To...", width = 12, command = lambda: SetOutputPath("output"))
 DriverButton = Button(BottomFrame, text = "Driver Path...", width = 12, command = lambda: SetOutputPath("driver"))
