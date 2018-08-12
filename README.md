@@ -12,6 +12,6 @@ Requires:
 
 3 Output to record tags and eventually mark errors
 
-4 Integration with existing analytics tool
+4 Integration with existing analytics tool (names of props and vars)
 
 5 2nd set of options to be able to set how a tag should fire on page
