@@ -14,20 +14,21 @@
 #TODO:  180705_33 MD LANDSEND DOESN"T WORK - it has a popup modal - must kill the popup modal --STILL AN ISSUE??? CHECK
 #TODO:  180730_37 SM change globals.* to glb.*
 #TODO:  180730_38 MD MOBILE UA ISN'T WORKING?
-#TODO:  180730_39 LG TKINTER crashes hard with a quit() fx.  Should remove these, and have better error handling
 
+#TODO:  180924_39 URL Test No longer works
+#TODO:  180924_40 Kessel Run has an else that may not be required
 
+print("**ACTUAL CODE...Last Commit:  9/24/18 5:51PM")
 
-print("**ACTUAL CODE...Last Commit:  8/4/18 1:18PM")
-
-#TODO:  180808_40 Create and connect mechanism to output to Excel:
+#TODO CURRENT PROJECT:  180808_40 Create and connect mechanism to output to Excel:
     # Create an excel spreadsheet
     #write page 1 to a sheet, write page 2 to a sheet, etc.
     #toggle for output to one sheet or output to many sheets?
     # Show Output Path and file name in an entry box
     # how to work with excel https://www.datacamp.com/community/tutorials/python-excel-tutorial
     #openpyexcel https://openpyxl.readthedocs.io/en/stable/tutorial.html
-    #TODO -- I left off connecting pulldata scriptexecution and kesselrun functions - currently checking with print functions
+    #TODO -- I left off Issues with setting active sheet in openpyxl
+
 
 
 from selenium import webdriver
@@ -37,12 +38,21 @@ from selenium.webdriver.common.desired_capabilities import DesiredCapabilities #
 from time import sleep #allows for waiting w/ promise
 import requests #used for URL functions and validity
 import urllib3 #used to kill Insecure https request warnings- should solve properly for this
-import globals
+
 import openpyxl #https://openpyxl.readthedocs.io/en/stable/tutorial.html
 
+#these imports and two lines may be necessary to import globals.
+# import sys
+# import os
+#
+# file_dir = os.path.dirname("C:/Python36/Env/PacketSniffer/")
+# sys.path.append(file_dir)
 
+import globals
 print("...Import complete...")
 
+
+#9/17/18 edit - try without headless
 #CREATE OPTIONS AND CAPABILITIES OBJECTS
 ops = Options()
 caps = DesiredCapabilities.FIREFOX.copy()
@@ -50,12 +60,15 @@ profile = webdriver.FirefoxProfile()
 prof = webdriver.FirefoxProfile()
 
 #MODIFY OPTIONS AND CAPABILITIES TO BE HEADLESS AND EAGER LOAD STRATEGY, ATTEMPTING TO ADD IN UA
+#removed Ops and UA for debugging 9/17/2018
 caps.update({'pageLoadStrategy':'eager'})
 ops.headless=True
-prof.set_preference("general.useragent.override", "Android 4.4; Mobile;")
+
+#only works in scratch file
+#prof.set_preference("general.useragent.override", "Android 4.4; Mobile;")
 
 #required geckodriver v20???  May end timeout issues
-browser = webdriver.Firefox(executable_path="C:\\Python36\\Env\\PacketSniffer\\Drivers for Selenium Library\\geckodriver20.exe",options=ops, capabilities=caps, timeout=60)
+browser = webdriver.Firefox(executable_path="C:\\Python36\\Env\\PacketSniffer\\Drivers for Selenium Library\\geckodriver20.exe", capabilities=caps, timeout=10, options = ops)
 print("...Globals are set...")
 
 # create an array of the vars and props for export to excel
@@ -84,7 +97,7 @@ def WritePageCode():
 
 
 def URLTest():
-    '''TESTS THE URL FOR STANDARD HTTP ERRORS, DISABLES SSL CHECKS'''
+    '''TESTS THE URL FOR STANDARD HTTP ERRORS, DISABLES SSL CHECKS URL CHECK ISN'T CURRENTLY WORKING'''
     try:
         #hard disable SSL warning
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -94,26 +107,27 @@ def URLTest():
             print("\nURL STATUS OK:  "+str(r.status_code))
         else:
             print("URL STATUS NOT 200:  " + str(r.status_code))
-            return quit()
+            return
     except requests.exceptions.RequestException as e:
-        print("GET ENCOUNTERED A FAILURE"+str(e)), quit()
+        print("GET ENCOUNTERED A FAILURE"+str(e))
 
 def StandardCodeChecks():
     '''TESTS FOR EXISTENCE OF ADOBE COOKIE AND S_CODE, ELSE QUITS'''
-    #check for cookie, if not, quit.  Should build if cookie changes page to page as well
-    if browser.get_cookie(globals.OrgID) is not None:
-        InitialVisitorCookie = browser.get_cookie(globals.OrgID)
-        #FUTURE STATE:  if CurrentCookie == NULL Then Continue else if Initial Visitor Cookie != CurrentCookie throw error
+    CookieExists = browser.get_cookie(globals.OrgID)
+    MCIDExists = browser.execute_script("return("+globals.AdobeNamespace+"marketingCloudVisitorID"+");")
+
+    #check for cookie, if not, nothing else matters  Should build if cookie changes page to page as well
+    if CookieExists is not None:
+        # InitialVisitorCookie = browser.get_cookie(globals.OrgID)
+        # #FUTURE STATE:  if CurrentCookie == NULL Then Continue else if Initial Visitor Cookie != CurrentCookie throw error
         print("...Cookie Was Found...")
         sleep(2)
-        if ScriptExecution("marketingCloudVisitorID",False) is None or ScriptExecution("marketingCloudVisitorID",False)=="":
+        if MCIDExists is None or MCIDExists=="":
             print("MCID NOT SET!")
-            quit()
         else:
             print("...MCID Was Set...")
     else:
         print("COOKIE OR ORG ID NOT FOUND!")
-        quit()
 
 
     # check for presence of s_code.js, (this only works without data layer or DTM... update IT later)
@@ -121,7 +135,7 @@ def StandardCodeChecks():
         print("...s_code exists...")
     else:
         print("s_code does not exist!...")
-        return quit()
+        return
 
 def ScriptExecution(SVarStr,PrintMe=True):
     '''GRABS THE TAG VALUES, APPENDS THEM TO AN ARRAY.  INTENDED TO OPERATE ON EACH TAG.  TAKES TAG NAME AS PARAM 1 (pageName) for example'''
@@ -131,17 +145,17 @@ def ScriptExecution(SVarStr,PrintMe=True):
         x=0
     elif SVarVal == "" and PrintMe==True:
         MagicArray.append(str(SVarStr)+":"+"  ---")
-        #print(str(SVarStr)+":"+"  ---")
+        print(str(SVarStr)+":"+"  ---")
 
     elif PrintMe==True:
         MagicArray.append(str(SVarStr)+":"+"  "+str(SVarVal))
-        #print(str(SVarStr)+":"+"  "+str(SVarVal))
+        print(str(SVarStr)+":"+"  "+str(SVarVal))
 
 def PullPage():
     '''GRABS THE PAGE, RUNS SCRIPTEXECUTION FUNCTION ON EACH SET OF TAGS, CHECKS EACH PAGE FOR STANDARD CODE ELEMENTS'''
     browser.get(globals.TargetURL)
     print("...Getting URL...")
-    sleep(1)
+    sleep(4)
 
     #RUN STANDARD CHECKS FOR ADOBE CODE
     StandardCodeChecks()
@@ -166,12 +180,16 @@ def KesselRun():
     '''LOOPS THROUGH THE URLARRAY, EXECUTES URLTEST, PULLDATA (w/ Script Execution) and then WritePageCode IN SEQUENCE, KNOWS WHEN THE URL CHANGES'''
     for m in range(0, len(globals.URLArray)):
         globals.TargetURL = globals.URLArray[m]
-        URLTest()
+
+        #disabled 9/17/18 - may be blocking code
+        #URLTest()
+
         PullPage()
         #WritePageCode()
 
         m=m + 1
     else:
+        #THIS BIT MAY NOT BE NEEDED
         globals.URLArray = [""]
         globals.OrgID=""
         print("\n12 Parsecs!")

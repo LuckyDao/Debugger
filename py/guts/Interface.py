@@ -2,7 +2,7 @@
 #Note:  GLOBAL means "global to the file" not the package
 
 #TODO:  180729_8 VLG right frame should contain output of current execution or some sort of indicator
-#TODO:  180729_9 LG in the Adobe org ID, check if it is URL encoded or not and adjust  (script prefers URL encoded)
+#TODOCOMPLETE:  180729_9 LG in the Adobe org ID, check if it is URL encoded or not and adjust  (script prefers URL encoded) PUT ON USER
 #TODO:  180729_8 SM sort all widget grid and creation top to bottom, left to right
 #TODO:  180729_10 MD no need to disable widgets while running, should give user feedback that it is not just hung
 #TODO:  180729_14 SM outpath should be toggled as 1:  file output or 2:  driver location  (yup w/ lambda)
@@ -13,16 +13,8 @@
     #connect log and print statements to output pane
     #pass errors to output pane
     #Create "loading" animation with a for loop
-
-
 #TODO:  180808_21 add helpful hints
 
-#TODOCOMPLETE:  180808_21 remove url count, is not used
-#TODOCOMPLETE:  180730_19 SM attach Adobe Org ID
-#TODOCOMPLETE:  180730_20 OP since I'm importing Scrape into Interface, I could make a "browser" class with methods and such --NOT NEEDED
-#TODOCOMPLETE:  180808_22 Add a check for any empty boxes
-#TODOCOMPLETE:  180729_11 SM attach namespace entry box
-#TODOCOMPLETE:  180808_20 add a check for the Adobe ID before it loads pages
 
     #Colors:
         # #224587 Bright Blu
@@ -32,7 +24,7 @@
         # #5e77a7 Light Blue
 
 
-print("ACTUAL CODE:  Last upload 8/4/18 1:15PM")
+print("ACTUAL CODE:  Last upload 9/24/18 5:52PM")
 
 
 from tkinter import *
@@ -46,7 +38,7 @@ print ("***import complete***")
 
 #TOP LVL FXS
 def DeleteEntry(event):
-    if OrgIDEnt.get() == "Enter your Adobe Org ID":
+    if OrgIDEnt.get() == "Enter the AMCVS Cookie Name":
         OrgIDEnt.delete(0,END)
     else:
         x=0
@@ -123,7 +115,7 @@ DeviceRadioSP = Radiobutton(BottomFrame, text = "Smartphone", variable = RadioVa
 RadioVar.set(1) #default DT
 
 OrgIDDefText = StringVar()
-OrgIDDefText.set("Enter your Adobe Org ID")
+OrgIDDefText.set("Enter the AMCVS Cookie Name")
 OrgIDEnt = Entry(TopFrame, textvariable=OrgIDDefText, fg="#8a8d91", width=30)
 OrgIDEnt.bind("<Button-1>", DeleteEntry)
 
